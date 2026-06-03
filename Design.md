@@ -1,0 +1,368 @@
+# Analysis Document
+## 원 스텝 천 리
+⏰ ADHD를 위한 일정 관리 프로그램
+
+<img width="600" height="600" alt="Image" src="https://github.com/user-attachments/assets/d49b7bfa-236b-4cab-9700-7a1eb959c7f1" />
+
+<br />
+
+| Student No | 22413567 |
+| --- | --- |
+| **Name**| 김소원 |
+| **E-Mail** | 22413567@yu.ac.kr |
+
+<br />
+
+# Revision history
+https://github.com/22413567/OSS-Design/commits/master/
+
+▶ 커밋 내역에서 확인할 수 있습니다.
+
+<br />
+
+
+# Contents
+
+1. [Introduction](#1-introduction)
+
+2. [Class Diagram](#2-class-diagram)
+   - [2.1. Entity Domain](#21-entity-domain)
+   - [2.2. User Domain](#22-user-domain)
+   - [2.3. Task Domain](#22-task-domain)
+   - [2.4. Friend Domain](#22-friend-domain)
+   - [2.5. DailyStat Domain](#22-dailyStat-domain)
+3. [Sequence Diagram](#3-sequence-diagram)
+    - [3.1. Register](#31-register)
+    - [3.2. Login](#32-login)
+    - [3.3. Logout](#33-logout)
+    - [3.4. Add Main Task / Add Shared Task](#34-add-main-task--add-shared-task)
+    - [3.5. Add Sub Task](#35-add-sub-task)
+    - [3.6. Update Task](#36-update-task)
+    - [3.7. Delete Task](#37-delete-task)
+    - [3.8. Toggle Task](#38-toggle-task)
+    - [3.9. Execute Timer](#39-execute-timer)
+    - [3.10. Add Friend](#310-add-friend)
+    - [3.11. Delete Friend](#311-delete-friend)
+    - [3.12. Remind Task](#312-remind-task)
+    - [3.13. Report Stat](#313-report-stat)
+    - [3.14. View Status](#314-view-status)
+    - [3.15. View Ranking](#315-view-ranking)
+4. [State machine Diagram](#4-state-machine-diagram)
+5. [Implementation Requirements](#5-implementation-requirements)
+6. [Glossary](#6-glossary)
+7. [References](#7-references)
+
+<br />
+
+# 1. Introduction
+
+본 문서는 원 스텝 천 리의 Design 과정에 대해 기술한 것으로, 지난 Analysis 문서에서 분석한 Use Case들이 시스템은 무엇(What)을 해야 하는가에 집중하여 
+사용자의 요구사항을 정의했다면, Design 과정에서는 시스템이 이를 어떻게 구현할 것인가(How)에 초점을 맞춘다. 
+해당 문서는 class diagram, sequence diagram, state machine diagram을 통해 시스템의 구조와 객체들의 상호작용, 상태 변화를 설명하는 것을 목적으로 한다. 
+
+# 2. Class Diagram
+
+class diagram이란 시스템의 클래스, 클래스의 속성, 동작 방식, 객체 간 관계를 표시해 시스템의 구조를 보여주는 정적 구조 다이어그램이다.
+해당 시스템은 16개의 유스케이스를 포함하고 있으며, 이를 하나의 다이어그램으로 표현할 경우 클래스 간 연간관계가 복잡해 시스템의 논리적 흐름을 파악하기 어렵다. 따라서 전체 시스템을 4개의 도메인으로 분할해 작성하였으며, 
+전체 데이터가 어떤 관계를 가지는지 흐름을 파악할 수 있도록 데이터 객체만으로 구성된 entity 도메인 다이어그램을 별도로 작성하였다.
+
+## 2.1. Entity Domain
+
+<img width="1578" height="1002" alt="Image" src="https://github.com/user-attachments/assets/5f8f7cca-1d9c-4526-b9c2-196d2cda0754" />
+
+첫 번째는 entity 도메인 다이어그램이다.
+한 명의 사용자는 여러 개의 과제를 생성하고, 타인으로부터 할당받은 공동 과제 기록을 가지며, 통계 데이터를 축적한다. 
+결과적으로 과제(Task), 공유 기록(Taskshare), 통계(Dailystat) 데이터는 모두 독립적으로 존재할 수 없으며 반드시 특정 사용자(User)에게 종속되어 있음을 의미한다.
+또한 사용자 간의 친구 관계는 다대다 관계이므로, 이 연관관계를 표현할 Friendship entity를 따로 두었다. Friendship은 User(본인 혹은 친구)의 데이터를 참조한다.
+Taskshare은 리더가 생성한 원본 과제(Task)와 친구에게 할당된 과제(Task 복사본) 데이터를 mapping하는 역할을 맡으며, 원본 과제의 내용이 수정되거나 삭제되면 Taskshare entity를 통해 처리하게 된다.
+Entity domain의 경우, 데이터 객체로 구성되었으므로 연관 관계를 따로 표시하지 않았다.
+
+
+## 2.2. User Domain
+
+<img width="1682" height="674" alt="Image" src="https://github.com/user-attachments/assets/068de098-b236-4636-93fb-7d79a7bd5549" />
+
+다음은 User 도메인에 관한 클래스 다이어그램으로, 사용자 계정 생성, 인증(로그인) 등을 담당한다.
+UserController는 웹 HTTP 요청(입출력 및 세션 관리)만 담당하며, 실제 중복 검사 및 로그인 비밀번호 대조 연산은 UserService로 위임한다.
+ 또한 UserService는 데이터를 저장하거나 결과를 반환하기 위해 User 객체를 메서드 내에서 일시적으로 생성하여 사용하므로, User를 향해 의존 관계를 가진다. 
+
+
+## 2.3. Task Domain
+
+<img width="1758" height="790" alt="Image" src="https://github.com/user-attachments/assets/3d7472a0-ded4-4ac1-a1f5-e7ee5f8fa233" />
+
+다음은 Task 도메인에 관한 다이어그램으로, 메인, 하위, 공동 과제의 추가, 수정, 삭제 등의 기능을 담당한다.
+공동 과제 할당 시 원본 과제와 복제된 과제를 연결하기 위해, TaskShare은 원본 Task와 복제본 Task, 그리고 공유받은 User를 각각 가리키는 3개의 연관 관계를 가진다. 
+그리고 공동 과제를 생성할 때 대상 친구가 실존하는지 검증하기 위해, TaskService는 예외적으로 UserRepository를 연관 관계로 참조한다
+
+
+## 2.4. Friend Domain
+
+<img width="1604" height="540" alt="image" src="https://github.com/user-attachments/assets/47032939-e18b-4285-a45b-109f7c62a4df" />
+
+다음은 Friend 도메인에 관한 다이어그램으로, 사용자 간의 상호작용과 친구 데이터 매핑 등의 기능을 담당한다.
+시스템 구조상 유저와 유저는 다대다 관계를 맺는다. 
+이를 관계형 DB에서 안전하게 풀어내기 위해 Friendship을 만들었다.
+따라서 Friendship은  User를 향해 두 개의 연관 관계(하나는 user(본인), 다른 하나는 friend(친구)) 를 가지며 양방향 mapping을 구현한다. 
+
+
+## 2.5. DailyStat Domain
+
+<img width="1698" height="954" alt="Image" src="https://github.com/user-attachments/assets/4dcd4706-4679-4e2a-9892-7bebd33355de" />
+
+다음은 DailyStat 도메인에 관한 다이어그램으로, 사용자 통계 및 랭킹 산출, 일일 과제 수행률 계산  등의 기능을 담당한다.
+DailyStatService는 랭킹 계산을 위해 개인의 과제 데이터, 친구 데이터를 모두 참조할 수 있어야 한다. 
+따라서 DailyStatService는 본인의 DailyStatRepository뿐만 아니라, UserRepository, FriendshipRepository, TaskRepository까지 총 4개의 Repository와 연관관계를 맺는다.
+또한  DailyStat은 해당 통계(하루/일주일)의 주인을 명시하기 위해 User를 향해 연관 관계(실선 화살표)를 가진다. 
+
+
+# 3. Sequence Diagram
+
+sequence diagram이란 시스템이나 객체들이 시간의 흐름에 따라 서로 메시지(요청과 응답)를 주고받으며 
+상호작용하는 과정을 시각적으로 나타낸 다이어그램이다. 해당 장에선 Use Case별로 추출한 sequence diagram을 설명할 예정이다.
+
+## 3.1. Register
+
+<img width="1580" height="950" alt="Image" src="https://github.com/user-attachments/assets/15efe37c-3517-4ca5-9e1a-ba954a5bba90" />
+
+사용자가 아이디(userId), 비밀번호(password), 닉네임(nickname)을 입력하면 UserController는 이를 signup() 메서드를 통해 수신하고, UserService의 registerUser() 메서드로 위임한다.
+UserService는 데이터베이스에 값을 저장하기 전 isInvalidInput() 메서드를 실행해 공백이나 특수문자 등 조건에 맞지 않는 값이 들어오지 않았는지 확인한다. 
+만약 데이터에 결함이 있다고 판단되면 IllegalArgumentException을 발생시켜 가입 실패 메시지를 전송하고, 
+데이터에 결함이 없다면 데이터베이스와 소통하는 UserRepository의 existsById(userId)를 실행해 DB에 이미 동일한 아이디가 존재하는지 조회한다. 
+해당 과정에서도 중복된 아이디가 발견하면 오류 메시지를 띄우며, 데이터에 문제가 없다고 판단되면 Repository의 save(User) 메서드를 통해 
+새로운 유저 객체를 데이터베이스에 저장하고, 회원가입 기능을 성공적으로 종료한다.
+
+## 3.2. Login
+
+<img width="1720" height="1196" alt="Image" src="https://github.com/user-attachments/assets/ffcb2294-a55e-4dac-85d5-20ba556102ae" />
+
+사용자가 아이디(userId)와 비밀번호(password) 를 입력해 로그인 요청을 보내면, UserController가 이를 수신하여 
+UserService의 login() 메서드를 실행해 실제 아이디와 비밀번호가 유효한지 판별하는 작업을 맡긴다. 
+UserService는 데이터베이스와 직접 소통하는 UserRepository의 findById(userId)를 동작시켜 해당 아이디를 가진 유저 데이터를 찾아 Optional<> 객체 형태로 반환받는다.
+이후 데이터의 존재 여부를 묻는 userOptional.isPresent() 조건과 저장된 비밀번호의 일치 여부를 묻는 user.getPassword().equals(password) 조건을 연달아 확인하며, 
+두 조건이 모두 참일 경우 UserController로 User 객체를 반환한다. 
+객체를 받은 UserController는 서버의 메모리 공간에 session.setAttribute("loginUser", userId)를 실행해 사용자가 웹페이지를 이용할 수 있도록 한다. 
+반면 데이터베이스에 아이디가 존재하지 않거나 입력한 비밀번호가 다를 경우 서비스 계층은 null을 반환하며, 
+UserController는 session 생성을 수행하지 않고 사용자에게 아이디나 비밀번호를 확인하라는 실패 메시지를 전송하는 것으로 기능을 마무리한다.
+
+## 3.3. Logout
+
+<img width="1500" height="630" alt="Image" src="https://github.com/user-attachments/assets/6c4c3694-4bf6-45b8-a602-04b00aefb60c" />
+
+사용자가 로그아웃 요청을 보내면 UserController가 이를 수신해 
+서버 메모리에 유지되고 있던 해당 사용자의 세션(Session) 객체를 찾아 session.invalidate() 메서드를 실행함으로써 
+로그인 세션 데이터를 초기화한다. 이후 사용자의 식별 정보가 서버에서 지워지면 로그아웃 기능을 마무리한다.
+
+## 3.4. Add Main Task / Add Shared Task
+
+<img width="1332" height="1066" alt="Image" src="https://github.com/user-attachments/assets/387dfa64-2283-4a53-9338-bf223b9be09f" />
+
+사용자가 과제 내용(content)과 공유할 친구 식별자(friendId) 데이터를 담아 과제 추가 요청을 보내면, 
+TaskController가 이를 수신한 뒤 TaskService의 addSharedTask() 메서드를 실행하여 실제 과제 생성 및 공유 권한 판별 작업을 맡긴다. 
+호출을 받은 TaskService는 데이터베이스에 접근하기 전 과제 내용이 비어있거나 50자를 초과하는지 먼저 확인하며, 
+결함이 있을 경우 즉시 IllegalArgumentException을 발생시켜 TaskController가 사용자에게 오류 메시지를 전송하도록 한다. 
+과제 내용에 문제가 없다면 UserRepository를 통해 요청자를 식별하고 TaskRepository를 호출해 
+이미 진행 중인 동일한 이름의 단독 과제가 있는지 조회하며, 중복된 데이터가 발견될 때도 앞선 과정과 마찬가지로 오류 메시지를 전송한다. 
+만약 friendId가 포함되어 공동 과제로 판별될 경우, TaskService는 추가적으로 FriendshipRepository를 동작시켜 
+두 사용자 간의 실제 친구 관계가 유효한지 확인하고, 상대방의 과제 목록에도 동일한 이름이 존재하는지 중복 여부를 조회하여 문제가 발견되면 오류 메시지를 전송한다. 
+중복이 없는 것으로 판별되면 개인 과제의 경우 TaskRepository의 save() 메서드를 통해, 공동 과제는 TaskShareRepository의 save() 메서드도 함께 실행해 
+과제 객체를 데이터베이스에 저장한다. 이후 Task 객체를 반환하는 것으로 Add Task 기능을 마무리한다.
+
+## 3.5. Add Sub Task
+
+<img width="1464" height="1142" alt="Image" src="https://github.com/user-attachments/assets/2bf45f0d-7d18-4c6b-a54a-8555e1772597" />
+
+사용자가 하위 과제 내용(content)과 부모 과제 식별자(parentTaskId) 데이터를 담아 과제 추가 요청을 보내면, 
+TaskController가 이를 수신하여 TaskService의 addSubTask() 메서드로 로직 처리를 위임한다. TaskService는 먼저 과제 내용이 비어있는지 확인하여 오류가 있다면 IllegalArgumentException을 발생시키고,
+정상이라면 UserRepository와 TaskRepository를 통해 사용자(userId)와 부모 과제(parentTaskId) 데이터를 각각 조회한다. 
+그 후 해당 부모 과제가 본인이 생성한 원본인지(공동 과제의 리더 권한 검증) 확인하여 복제본일 경우 수정을 제한하는 예외 처리를 진행하고, 
+원본이라면 다시 TaskRepository를 호출해 현재 등록된 하위 과제 개수가 10개 이상이거나 동일한 이름이 존재하는지 확인한다. 
+문제가 없다고 판단되면 TaskRepository의 save() 메서드를 통해 새로운 하위 과제를 데이터베이스에 저장하며, 이 과제가 만약 친구와 공유 중인 공동 과제라면
+TaskShareRepository를 통해 공유 과제 목록(List<TaskShare>)을 조회한 뒤 반복문(loop)을 통해 친구의 과제 목록에도 동일한 하위 과제(clonedSub)를 
+연쇄적으로 복제하여 저장하고 성공 결과를 사용자에게 반환한다.
+
+## 3.6. Update Task
+
+<img width="1680" height="1218" alt="Image" src="https://github.com/user-attachments/assets/94d7cd3e-eca8-4359-b3e1-04ce0f44d86a" />
+
+사용자가 수정할 과제의 고유 번호(taskId)와 새로운 내용(newContent) 데이터를 담아 요청을 보내면, 
+TaskController가 이를 수신하여 TaskService의 updateTask() 메서드로 실제 과제 수정 작업을 맡긴다. 
+실행된 TaskService는 데이터베이스를 조회하기 전 새로운 과제 내용이 비어있거나 50자를 초과하는지 먼저 확인하며, 
+결함이 있을 경우 즉시 IllegalArgumentException을 발생시켜 TaskController가 사용자에게 오류 메시지를 전송하도록 만든다. 
+입력값 형태에 문제가 없다면 TaskRepository의 findById() 메서드를 통해 수정하려는 원본 과제 데이터를 가져오며, 해당 과제가 이미 완료 처리되었거나, 
+본인 소유의 과제가 아니거나, 다른 사람으로부터 공유받은 공동 과제(리더 권한이 없는 경우)일 때에는 앞선 과정과 동일하게 예외를 발생시킨다. 
+과제의 상태와 권한에 어떠한 문제도 없다면 TaskRepository를 다시 호출하여 save() 메서드를 통해 데이터베이스에 수정한 과제 내용을 저장한다. 
+만약 과제가 공동 과제였다면, 해당 원본 과제를 바탕으로 과제 목록을 모두 불러온 뒤 반복문(loop)을 통해 공유받은 친구들의 
+과제 내용까지 동일하게 변경해 주고 최종적으로 본인의 원본 과제 데이터를 save() 메서드로 저장한 후 Update Task 기능을 마무리한다.
+
+## 3.7. Delete Task
+
+<img width="1434" height="1160" alt="Image" src="https://github.com/user-attachments/assets/1eb59cec-8dce-45eb-bce7-d7d80eb458d1" />
+
+사용자가 삭제할 과제의 식별자 데이터(taskId)를 담아 요청을 보내면, TaskController가 이를 수신하여 TaskService의 deleteTask() 메서드로 데이터 연쇄 삭제 작업을 맡긴다. 
+실행된 TaskService는 TaskRepository의 findById() 메서드를 통해 해당 과제 데이터를 가져오며, 해당 과제가 공동 과제로 판별될 경우 
+함부로 삭제하지 못하도록 RuntimeException을 발생시켜  데이터를 보호한다. 
+과제 소유권에 문제가 없는 개인 과제로 확인되면, TaskService는 TaskShareRepository를 호출한다. 
+개인 과제는 shares 객체 리스트가 비어있으므로, 친구에게 복제된 과제(cloneSubs, clone)를 지우는 반복문(loop)과 taskShareRepository.deleteAll(shares) 단계, taskRepository.deleteAll(subClones) 단계가 아무런 동작 없이 그대로 통과된다. 따라서 본인이 작성한 메인 과제에 종속된 하위 과제 목록인 mySubs 객체를 찾아 taskRepository.deleteAll(mySubs) 메서드로 일괄 삭제 처리를 수행한 뒤, 곧바로 원본 메인 과제인 task 객체를 taskRepository.delete(task) 메서드로 지우는 단계만 수행한다.
+ 반면 하위 과제가 공동 과제일 경우 TaskService는 TaskShareRepository를 호출해 친구 소유의 하위 과제 목록인 cloneSubs 객체를 
+taskRepository.deleteAll(cloneSubs) 메서드로 일괄 삭제한 후, 이어서 친구 소유의 메인 과제인 clone 객체를 taskRepository.delete(clone) 메서드로 삭제한다. 
+친구의 복제본 데이터가 모두 정리된 후에는 원본과 복제본을 연결해 주던 관계 데이터 목록인 shares 객체를 taskShareRepository.deleteAll(shares) 메서드로 삭제해 
+과제 간의 연결을 완전히 끊는다. 이후 원본 아이디를 참조하는 잔여 하위 복제본 목록인 subClones 객체를 taskRepository.deleteAll(subClones) 메서드로 지운 뒤, 
+본인이 작성한 메인 과제에 종속된 하위 과제 목록인 mySubs 객체 역시 taskRepository.deleteAll(mySubs) 메서드를 통해 순차적으로 일괄 삭제 처리를 수행한다. 
+마지막으로 최상위 원본 메인 과제인 task 객체를 taskRepository.delete(task) 메서드를 통해 지우면 과제 삭제 기능이 마무리된다. 
+
+## 3.8. Toggle Task
+
+<img width="1704" height="1168" alt="Image" src="https://github.com/user-attachments/assets/0a72fe05-abda-4ff6-98bb-4ff7e4b7fc50" />
+
+사용자가 과제의 완료 상태를 변경하기 위해 대상 과제의 식별자(taskId) 데이터를 담아 요청을 보내면, 
+TaskController가 이를 수신하여 TaskService의 toggleTask() 메서드로 과제 상태 변경 및 메인 과제 갱신 로직을 위임한다. 
+실행된 TaskService는 TaskRepository의 findById(taskId) 메서드를 통해 대상 과제 객체인 task를 꺼내와 기존 완료 상태를 바꾼 뒤,
+ save(task) 메서드를 호출해 변경된 본인의 상태를 데이터베이스에 저장한다. 
+이후 해당 과제가 메인 과제가 아닌 하위 과제일 경우(task.getParentTask() != null), 메인 과제의 완료 여부를 자동으로 바꾸기 위해 TaskRepository의 findByParentTask(parent) 메서드를 호출해 
+부모 과제에 속한 모든 하위 과제 목록을 불러온다. TaskService는 이 목록을 반복(loop)하며 각 하위 과제 t의 getIsCompleted() 값을 확인해 
+모든 하위 과제가 완료되었는지 논리적으로 판별한 다음, 그 결과에 맞게 메인 과제 객체인 parent의 완료 상태를 업데이트하고 save(parent) 메서드를 통해 
+데이터베이스에 최종 반영한다. 하위 과제, 메인 과제의 연쇄적인 상태 갱신이 완료되면 TaskController로 변경된 객체를 반환하며 기능을 마무리한다.
+
+## 3.9. Execute Timer
+
+<img width="1212" height="1118" alt="Image" src="https://github.com/user-attachments/assets/66fab072-207a-43e0-b6bc-b354e1d90bdf" />
+
+사용자가 타이머 실행을 위해 startTimer(sec) 함수를 호출하면 JS는 내부 상태 변수인 isTimerRunning을 true로 전환하며 시간을 측정하기 시작한다. 
+설정된 남은 시간이 0 이하(left <= 0)가 될 때까지 1초마다 화면의 timer_display UI 요소를 업데이트하는 내부 반복문(loop)를 돌며 카운트다운을 실행하고, 
+시간이 모두 소진되면 isTimerRunning을 false로 되돌린 후 백엔드의 DailyStatController를 향해 25분의 누적 시간을 담아 API 통신을 시도한다. 
+요청을 받은 DailyStatController는 DailyStatService의 addFocusTime(userId, 25) 메서드로 실질적인 데이터베이스 갱신 작업을 위임하고 
+처리가 완료된 DailyStat 결과를 바탕으로 타이머 종료 메시지를 사용자에게 전송한다. 
+또한 그 직후 화면 최신화를 위해 JS가 자발적으로 loadDashboard()와 loadRanking() 함수를 연달아 실행하여 서버로부터 주간 통계 기록인 List<DailyStat>와 일간 랭킹 리스트인 List<Map> 데이터를 각각 다시 받아오며, 
+이를 바탕으로 Chart.js 그래프와 랭킹 UI를 실시간으로 재렌더링한다. 
+
+<img width="966" height="556" alt="Image" src="https://github.com/user-attachments/assets/1556c9cc-ebd6-45a9-9506-f8e14158067a" />
+
+이와 별개로, 사용자가 타이머를 가동 중이거나 과제를 수정하는 도중 
+(isTimerRunning == true || isEditingTask == true) 실수로 브라우저 탭을 닫거나 새로고침을 시도할 경우, JS가 event.preventDefault() 함수를 동작시킴으로써 데이터 초기화를 막는다.
+
+## 3.10. Add Friend
+
+<img width="1164" height="1202" alt="Image" src="https://github.com/user-attachments/assets/6013749e-91f4-4c8f-b0ee-2b2de4f39a44" />
+
+사용자가 추가할 친구의 식별자(friendId) 데이터를 담아 요청을 보내면, FriendshipController가 이를 수신하여 FriendshipService의 addFriend() 메서드로 친구 맺기 기능을 위임한다. FriendshipService는 먼저 요청자와 대상자의 아이디가 동일한지 판별하여 자기 자신을 추가하려는 시도일 경우 실패 메시지를 반환한다. 
+서로 다른 아이디라면 UserRepository의 findById() 메서드를 연달아 호출해 본인(myId)과 상대방(friendId)의 사용자 객체를 데이터베이스에서 꺼내오며, 
+대상자가 존재하지 않는 경우(friend == null) 역시 오류 안내 메시지를 반환한다. 유효한 대상자임이 확인되면 FriendshipRepository의 existsByRequesterAndReceiver(me, friend)를 실행시켜 
+두 사람 사이에 이미 성립된 친구 관계가 있는지 조회하고, 등록된 상태라면 중복 안내 메시지를 반환해 기능을 종료한다. 
+새로운 관계일 경우 FriendshipRepository의 countByRequester() 메서드를 각각 호출해 본인과 상대방의 현재 등록된 친구 숫자를 산출한 뒤, 
+어느 한쪽이라도 50명 이상일 때(myFriendCount >= 50 || targetFriendCount >= 50)는 인원 초과 메시지를 반환한다. 어떠한 제약 조건에도 걸리지 않은 것으로 판별되면 
+FriendshipRepository의 save() 메서드를 두 번 호출해 본인 종속의 친구 관계 객체(myFriendship)와 상대방 종속의 친구 관계 객체(friendFriendship)를 데이터베이스에 양방향으로 교차 저장 처리하며, 친구 추가 성공 메시지를 전송하는 흐름으로 마무리한다.
+
+## 3.11. Delete Friend
+
+<img width="1566" height="1258" alt="Image" src="https://github.com/user-attachments/assets/796e5bcd-10c0-4f25-aa9d-90784fe9b8c3" />
+
+사용자가 삭제할 친구의 식별자(friendId) 데이터를 담아 요청을 보내면, FriendshipController가 이를 수신하여 
+FriendshipService의 deleteFriend() 메서드로 실제 친구 관계를 해지하고 랭킹, 공동과제 등 연관된 데이터 정리 작업을 맡긴다. 
+실행된 FriendshipService는 UserRepository를 통해 본인과 대상 친구의 사용자 객체를 각각 찾아온 뒤, FriendshipRepository의 existsByRequesterAndReceiver(me, friend) 메서드를 실행시켜 
+두 사람 사이에 실제 친구 관계가 맺어져 있는지 확인하며, 관계가 존재하지 않을 경우 즉시 IllegalStateException을 발생시켜 오류 메시지를 반환한다. 
+반면, 실제 친구 관계로 판별되면 FriendshipService는 해당 관계의 공동 과제들을 정리하기 위해 TaskShareRepository의 findAll() 메서드로 전체 공유 과제 목록을 불러온 후, 반복문(loop)을 돌며 해당 과제가 공동 과제인지 판별하고, 
+조건에 맞을 경우 ShareRepo의 delete(share)를 호출해 과제 간의 공유 연결 고리를 우선적으로 끊어낸다. 
+이어서 해당 공유 기록과 연관된 복제본 과제(clone)가 존재한다면 TaskRepository를 통해 하위 과제들을 찾아 deleteAll(cloneSubs)로 지우고 복제본 자체를 delete(clone)로 삭제하며, 
+마찬가지로 연관된 원본 과제(original) 측면에서도 동일하게 종속된 하위 과제들을 deleteAll(originalSubs)로 지운 뒤 원본 메인 과제를 delete(original)로 파기한다. 
+두 사람 사이에 공유되었던 모든 과제 데이터와 공유 기록을 삭제한 후에야 FriendshipRepository의 deleteByRequesterAndReceiver() 메서드를 두 번 호출하여 
+본인 측 친구 기록과 상대방 측 친구 기록을 양방향으로 완전히 파기하며 친구 삭제 기능을 마무리한다.
+
+## 3.12. Remind Task
+
+<img width="1512" height="860" alt="Image" src="https://github.com/user-attachments/assets/3e7abd0e-26e9-438d-9cca-7c9ac5c2a8c1" />
+
+JS 환경에서 setInterval(1 Hour) 함수를 통해 1시간 간격으로 알림 발송 함수인 sendTaskReminder()가 자체 실행되며 전체 흐름이 시작된다.
+ Client(JS)는 가장 먼저 알림 수신 동의 상태인 Notification.permission이 "granted"(허용)로 설정되어 있는지 검사하며, 
+권한이 유효할 경우 백엔드의 TaskController로 과제 목록 조회 API를 호출한다. 요청을 받은 TaskController는 TaskService의 getTasksByUser() 메서드를 실행하여 데이터베이스에서 해당 사용자의 
+전체 과제 목록인 List<Task>를 꺼내오는 작업을 지시하고, 데이터를 무사히 넘겨받으면 성공 메시지를 프론트엔드로 반환한다. 
+통신을 마친 브라우저는 JS의 filter() 함수를 활용해 응답받은 전체 과제 중 부모 과제가 존재하면서 동시에 아직 완료되지 않은 항목(parentTask != null && isCompleted == false), 
+즉 미완료 하위 과제들만 추려내는 데이터 분류 작업을 수행한다. 마지막으로 미완료된 과제의 남은 개수(count)를 판별하여, 
+미완료 항목이 하나라도 존재할 경우 사용자 화면에 "아직 완료하지 않은…(과제가 n개 있습니다.)"라는 과제 리마인더(Notification)을 띄우고, 
+모두 완료되어 개수가 0일 경우 "모든 하위 목표를 달성했습니다!..."라는 격려 알림을 출력하는 것으로 과제 정기 알림 기능을 마무리한다.
+
+## 3.13. Report Stat
+
+<img width="1376" height="1172" alt="Image" src="https://github.com/user-attachments/assets/dcea051c-30bf-4878-8c3e-10ec3433d421" />
+
+JS 환경에서 setTimeout() 함수를 통해 자정(Midnight)에 일간 사용자 통계인 sendDailyReport()가 자체 실행되면서 전체 흐름이 시작된다.
+ JS는 가장 먼저 백엔드의 TaskController로 과제 목록 조회 API를 호출하여 전체 과제 응답을 받은 뒤, JS내부의 filter() 함수를 사용해 하위 과제(parentTask != null)들만 선별해 내고, 
+이를 바탕으로 전체 대비 완료된 개수를 연산하여 당일의 달성률(completionRate)을 계산한다. 
+이어서 DailyStatController로 주간 통계 조회 API를 연달아 호출해 데이터를 전달받고, find() 함수를 사용해 오늘 날짜에 해당하는 통계 기록을 특정해 내어 
+그 안에서 누적 집중 시간(focusTime) 수치를 추출한다. 만약 당일 등록된 총 과제 수와 집중 시간이 모두 0일 경우 화면 내 streak_days의 텍스트를 즉각 0으로 업데이트해 연속 달성 기록을 초기화하며, 푸시 알림 권한(Notification.permission)이 허용되어 있다면 
+"오늘은 쉬어가는 날이었나요?..."라는 알림을 사용자에게 전송한다. 반면 과제가 하나라도 존재하거나 집중 시간이 조금이라도 기록된 활성화된 하루였다면, 동일하게 알림 권한을 확인 후 "오늘 하위 목표 N개 달성..."이라는 성과 요약 알림을 제공하는 것으로 기능을 마무리한다.
+
+## 3.14. View Status
+
+<img width="1628" height="908" alt="Image" src="https://github.com/user-attachments/assets/776ec555-bb0d-4cc5-a52b-3b549f9b9979" />
+
+사용자가 본인의 통계 현황을 확인하기 위해 요청을 보내면, DailyStatController가 이를 수신하여 DailyStatService의 getWeeklyStats() 메서드로 실제 데이터 조회 작업을 맡긴다. 
+실행된 DailyStatService는 먼저 UserRepository의 findById(userId)를 실행해 데이터베이스에 해당 사용자가 실제로 존재하는지 확인하며, 
+만약 사용자를 찾을 수 없다면 IllegalArgumentException을 발생시켜 오류 메시지를 전송하도록 유도한다. 
+유효한 사용자로 확인되면, 서비스 계층은 DailyStatRepository를 호출하여 findByUserAndStatDateBetweenOrderByStatDateAsc(user, weekAgo, today) 메서드를 실행해
+ 일주일 전부터 오늘까지 생성된 해당 사용자의 통계 기록을 날짜 오름차순으로 정렬하여 List<> 객체 형태로 한 번에 불러온다. 
+이렇게 데이터베이스에서 불러온 주간 통계 목록 데이터는 다시 DailyStatController로 반환되며 기능을 마무리한다.
+
+## 3.15. View Ranking
+
+<img width="1370" height="942" alt="image" src="https://github.com/user-attachments/assets/0602686c-8349-48cf-b5c6-67d3c6be5a97" />
+
+사용자가 본인과 친구들의 일간 랭킹을 확인하기 위해 요청을 보내면, DailyStatController가 이를 수신한 뒤 
+DailyStatService의 getDailyRanking() 메서드를 실행하여 실제 순위 집계 작업을 맡긴다. 
+실행된 DailyStatService는 먼저 UserRepository의 findById(userId)를 통해 본인의 사용자 객체를 데이터베이스에서 찾아오고, 
+이어서 FriendshipRepository의 findByRequester(me) 메서드를 동작시켜 본인의 친구 관계 목록인 List<Friendship> 데이터를 불러온다. 
+그 후 첫 번째 반복문(loop)을 돌며 이 목록에 있는 각 친구 객체(f.getReceiver())를  targetUsers 리스트에 차례대로 추가해 순위에 표시할 친구 목록을 구성한다. 
+친구 목록이 완성되면 두 번째 반복문(loop)을 돌며 targetUsers에 속한 각 사용자(u)마다 TaskRepository의 findByUser(u) 메서드를 실행해 
+그 사람의 과제 목록인 List<Task>를 모두 호출하고, 그 안에서 다시 내부 반복문을 통해 과제가 메인이 아닌 하위 과제(t.getIsMain() == false)일 경우에만 달성률(completionRate)을 계산한다. 
+한 사람의 달성률 집계가 끝날 때마다 해당 정보가 담긴 맵(Map) 데이터를 최종 순위표 리스트인 ranking에 차례대로 추가하며, 
+모든 인원의 계산이 완료되면 서비스 계층 내부에서 달성률 내림차순 및 동점자 발생 시 닉네임 오름차순 기준을 적용해 ranking.sort() 작업을 수행한다.
+이렇게 정렬된 최종 순위 데이터 리스트를 DailyStatController로 전달해 랭킹 산정 과정을 마무리한다.
+
+
+# 4. State machine Diagram
+
+state machine diagram이란 상태 간 전환 조건 동안 객체가 경험하는 다양한 상태를 시각화한 다이어그램이다. 
+
+해당 장에서는 시스템 전체를 하나의 객체로 간주하고 시스템이 사용자의 요청에 따라 어떻게 변화하는지를 설명한다. 
+웹 페이지의 특성상 다수의 사용자가 접속할 수 있으므로, 해당 다이어그램은 단일 사용자 관점에서의 변화를 중심으로 설명할 예정이다.
+
+<img width="1284" height="978" alt="Image" src="https://github.com/user-attachments/assets/d5174b05-1f25-4e15-b954-94d84189037f" />
+
+시스템에 최초 접속하면 회원가입 화면이 등장하며, 회원가입 성공 시 바로 로그인 화면으로 전이된다. 로그인에 성공하면 
+Task dashboard, Friend dashboard 등 다양한 대시보드가 있는 main screen으로 진입하게 되며, 이벤트 발생에 따라 과제(Task), 친구(Friend), 타이머(Timer), 랭킹(Ranking), 통계 (DailyStat) 대시보드에 변화가 생기는 것을 표현하였다.
+
+# 5. Implementation Requirements
+
+1. H/W platform requirements
+   - CPU : 2 Core 이상
+   - RAM : 1GB 이상
+   - HDD / SSD : 10GB 이상의 여유 공간
+3. S/W platform requirements
+   - OS : Microsoft Windows 7 이상
+   - Implementation Language : JAVA
+   - Framework : Spring Boot
+   - Database : MySQL 8.0
+
+
+# 6. Glossary
+아래는 해당 보고서에 사용된 용어들의 구체적인 정의이다.
+
+
+| Terms | Description |
+| --- | --- | 
+| 리더 (Leader) | 친구가 한 명 이상인 사용자. 공동 과제를 추가할 수 있는 권한을 부여받는다. | 
+| 메인 과제 | 궁극적으로 달성하고자 하는 과제를 의미한다. 체크박스 형식으로 표시되는 하위 과제와 달리, 메인 과제는 체크박스 형식이 아니라 줄글 형식이며 하위 과제를 모두 완수해야만 해당 과제가 완료된 것으로 처리된다.  | 
+| 하위 과제 | 궁극적으로 달성해야 하는 메인 과제를 세분화한 것으로, 체크박스 형식으로 나타낸다. 예를 들어, ‘보고서 10p 작성’이 목표라면 ‘노트북 켜기’, ‘관련 논문 찾아보기’, ‘초안 작성하기’ 등이 하위 과제가 될 수 있다. | 
+| 공동 과제 | 리더 (Leader) 가 과제를 추가한 후 친구들과 공유할 수 있는 과제를 의미한다. 과제 추가 후 공동 과제로 등록하면, 서버가 해당 사용자의 친구 목록을 조회한 후 각 친구들에게 해당 과제를 자동 복사 후 추가한다. 이렇게 저장된 공동 과제는 개개인이 자신의 화면에서 독립적으로 관리할 수 있으며, 친구끼리 과제 상태를 공유한다. |
+| 과제 달성률 | 오늘 생성된 과제 수와 완료 수의 비율이다. '달성된 하위 과제의 개수 / 생성된 하위 과제의 개수' 로 계산한다. | 
+| 연속 달성일 | 연속으로 과제 달성률이 100%인 날짜 수를 의미한다. 예를 들어, 5일간 과제 달성률이 100%였다면 해당 사용자의 연속 달성일은 5일이다. 연속 달성일을 이어가다가 과제 달성률이 100% 미만이 되면 연속 달성일은 0일로 리셋된다. |
+| 연속 달성 격려 메시지 | 연속 달성일이 이틀 이상인 사람에게 발송되는 푸쉬 알림으로, 사용자의 성취감을 고취시키기 위해 고안되었다. |
+| 푸시 알림 | 웹페이지에서 사용자에게 보내는 알림이다. 당일 과제 달성률을 보고하거나 연속 달성 격려 메시지를 보낼 때 사용된다. |
+| 과제 리마인더 | 한 시간마다 미완료 상태인 하위 과제의 개수를 리마인드 시키며, 과제 수행을 촉구하는 푸쉬 알림이다. |
+| 랭킹 | 친구들과 나의 과제 달성률을 계산해 내림차순 정렬 후 매긴 순위로, 친구를 추가한 사용자들이 이용할 수 있는 기능이다. |
+
+<br />
+
+# 7. References
+1. “주의력결핍 과잉행동장애” 위키백과. 2026/04/30 접속
+   https://ko.wikipedia.org/wiki/%EC%A3%BC%EC%9D%98%EB%A0%A5%EA%B2%B0%ED%95%8D_%EA%B3%BC%EC%9E%89%ED%96%89%EB%8F%99%EC%9E%A5%EC%95%A0
