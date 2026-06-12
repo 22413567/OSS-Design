@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>원 스텝 천 리 - 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #EAF0FF; 
+            padding: 30px;
+            margin: 0;
+            color: #101E3B; 
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #050C1E; 
+            color: white;
+            padding: 15px 50px;
+            border-radius: 0 0 15px 15px;
+            margin: -30px -30px 30px -30px;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(5, 12, 30, 0.08); 
+            width: 350px;
+            box-sizing: border-box;
+        }
+
+        .list-card {
+            width: 550px;
+        }
+
+        button {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .logout-btn {
+            background-color: #2A3F7A; 
+            color: white;
+            padding: 8px 15px;
+        }
+
+        .timer-display {
+            font-size: 40px;
+            font-weight: bold;
+            text-align: center;
+            color: #101E3B; 
+            margin: 20px 0;
+            font-family: monospace;
+        }
+
+        .main-task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #EAF0FF;
+            padding: 10px 0;
+        }
+
+        .sub-task {
+            margin-left: 40px;
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .completed-text {
+            color: #A0ABC0; 
+            text-decoration: line-through;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #D9E2F2;
+            border-radius: 10px;
+            height: 18px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #6E8CFF; 
+            transition: width 0.5s ease-in-out;
+        }
+
+        .rank-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #EAF0FF;
+        }
+
+        .rank-medal {
+            font-size: 1.2em;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <h2 style="margin: 0;">원 스텝 천 리</h2>
+        <div>
+            <span id="user_info" style="margin-right: 20px; font-weight: normal;">로드 중...</span>
+            <button class="logout-btn" onclick="logout()">로그아웃</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+        <!-- 알림 테스트 모드 -->
+            <div class="card" style="border-top: 5px solid #2A3F7A; padding: 15px;">
+                <h3 style="margin-top: 0; margin-bottom: 5px; color: #101E3B;">알림 테스트 모드</h3>
+                <p style="font-size: 12px; color: #A0ABC0; margin-top: 0; margin-bottom: 15px;">기능 확인을 위한 대시보드입니다. 실제 배포 시엔 삭제할 예정입니다.</p>
+                <button onclick="requestNotificationPermission()" style="width: 100%; background: #6E8CFF; color: white; margin-bottom: 10px;">알림 권한 켜기</button>
+                <button onclick="sendTaskReminder()" style="width: 100%; background: #2A3F7A; color: white; margin-bottom: 5px;">과제 리마인더 실행</button>
+                <button onclick="sendDailyReport()" style="width: 100%; background: #101E3B; color: white;">데일리 리포트 실행</button>
+            </div>
+
+            <!-- 메인 과제 등록 -->
+            <div class="card">
+                <h3 style="color: #101E3B;">메인 과제 등록</h3>
+                <input type="text" id="t_content" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #D9E2F2; border-radius: 5px;" placeholder="메인 목표 입력">
+                <select id="t_friend" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #D9E2F2; border-radius: 5px; background: white; color: #101E3B;">
+                    <option value="none">혼자 하기 (공유 안 함)</option>
+                </select>
+                <button onclick="addTask()" style="width: 100%; background: #2A3F7A; color: white;">과제 생성</button>
+            </div>
+
+            <!-- 포모도로 타이머 -->
+            <div class="card" style="border-top: 5px solid #101E3B;">
+                <h3 style="color: #101E3B;">포모도로 타이머</h3>
+                <div id="timer_display" class="timer-display">25:00</div>
+                <div style="display: flex; gap: 5px;">
+                    <button id="btn_start" onclick="startTimer()" style="flex: 1; background:#2A3F7A; color:white;">집중 시작</button>
+                    <button id="btn_pause" onclick="togglePause()" style="flex: 1; background:#6E8CFF; color:white; display:none;">일시정지</button>
+                    <button id="btn_reset" onclick="resetTimer()" style="flex: 1; background:#050C1E; color:white; display:none;">초기화</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 과제 목록 -->
+        <div class="card list-card">
+            <h3 style="color: #101E3B;">과제 목록</h3>
+            <div id="task_result" style="min-height: 200px;"></div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px; width: 400px;">
+            <!-- 탭 버튼 색상 수정 -->
+            <div style="display: flex; gap: 10px;">
+                <button id="btn_dashboard" onclick="showTab('dashboard')" style="flex: 1; background: #D9E2F2; color: #101E3B; padding: 12px; font-size: 16px; border-radius: 8px;">나의 기록</button>
+                <button id="btn_friends" onclick="showTab('friends')" style="flex: 1; background: #D9E2F2; color: #101E3B; padding: 12px; font-size: 16px; border-radius: 8px;">친구</button>
+            </div>
+
+            <!-- 나의 기록 탭 -->
+            <div id="tab_dashboard" style="display: none; flex-direction: column; gap: 20px;">
+                <div class="card" style="width: 100%;">
+                    <h3 style="color: #101E3B;">일일 통계</h3>
+                    <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+                        <div style="flex: 1; background: #EEF1F7; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #6E8CFF;">
+                            <div style="font-size: 14px; color: #101E3B; font-weight: bold;">연속 달성일</div>
+                            <div style="font-size: 24px; font-weight: bold; color: #2A3F7A; margin-top: 5px;">
+                                <span id="streak_days_text">0</span>일
+                            </div>
+                        </div>
+                        <div style="flex: 1; background: #EEF1F7; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #6E8CFF;">
+                            <div style="font-size: 14px; color: #101E3B; font-weight: bold;">최근 7일 평균 달성률</div>
+                            <div style="font-size: 24px; font-weight: bold; color: #2A3F7A; margin-top: 5px;">
+                                <span id="avg_completion_text">0</span>%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span style="color: #101E3B;">오늘의 과제 달성률</span> <span id="completion_rate_text" style="color: #2A3F7A;">0%</span>
+                        </div>
+                        <div class="progress-container">
+                            <div id="completion_progress" class="progress-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong style="display: block; margin-bottom: 10px; color: #101E3B;">최근 7일 집중 시간 (분)</strong>
+                        <canvas id="weeklyChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 친구 탭 -->
+            <div id="tab_friends" style="display: none; flex-direction: column; gap: 20px;">
+                <div class="card" style="width: 100%; border-top: 5px solid #2A3F7A;">
+                    <h3 style="color: #101E3B;">랭킹</h3>
+                    <div id="ranking_list" style="margin-top: 10px; color: #101E3B;">로딩 중...</div>
+                </div>
+
+                <div class="card" style="width: 100%;">
+                    <h3 style="color: #101E3B;">친구 목록</h3>
+                    <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+                        <input type="text" id="friend_id_input" placeholder="친구 아이디 검색" style="margin-bottom: 0; flex-grow: 1; padding: 10px; border: 1px solid #D9E2F2; border-radius: 5px;">
+                        <button onclick="addFriend()" style="background: #2A3F7A; color: white; width: 80px;">추가</button>
+                    </div>
+                    <div id="friend_list" style="font-size: 14px; color: #3B4D80; background: #EEF1F7; padding: 15px; border-radius: 8px;">
+                        친구를 추가해보세요!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    
+        // =======================================================
+		// 로그인 로직
+		// =======================================================
+        window.onload = async function() {
+            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+
+            const res = await fetch('/api/users/me');
+            const userId = await res.text();
+
+            if (userId === "NOT_LOGGED_IN") {
+                alert("로그인이 필요합니다!");
+                location.href = "login.html";
+            } else {
+                document.getElementById('user_info').innerText = `환영합니다, ${userId}님!`;
+                getTasks();
+                loadDashboard();
+                loadFriends();
+                loadRanking();
+
+                showTab('dashboard');
+
+                startHourlyReminder();
+                scheduleMidnightReport();
+            }
+        };
+        
+        // =======================================================
+        // 로그아웃 로직
+        // =======================================================
+        async function logout() {
+            console.log("로그아웃 버튼 클릭됨!");
+            console.log("현재 타이머 상태:", typeof isTimerRunning !== 'undefined' ? isTimerRunning : '변수 없음');
+
+            const taskInput = document.getElementById('t_content').value.trim();
+            const isEditingTask = taskInput.length > 0;
+
+            if (isTimerRunning || isEditingTask) {
+                const userConfirmed = confirm("진행 중인 타이머나 저장되지 않은 내용이 취소될 수 있습니다. 정말 로그아웃 하시겠습니까?");
+                if (!userConfirmed) return; 
+            }
+
+            await fetch('/api/users/logout', { method: 'POST' });
+            location.href = "login.html";
+        }
+
+        // =======================================================
+        // 과제 추가 수정 삭제 로직
+        // =======================================================
+        async function addTask() {
+            const content = document.getElementById('t_content').value.trim();
+            const friendId = document.getElementById('t_friend').value;
+
+            if (content.length < 1 || content.length > 50) {
+                alert("과제 내용은 1자 이상, 50자 이내로 입력해주세요.");
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('content', content);
+            params.append('friendId', friendId);
+
+            const response = await fetch('/api/tasks/add', { method: 'POST', body: params });
+            const msg = await response.text();
+
+            if (msg.includes("진행 중") || msg.includes("실패") || msg.includes("오류")) {
+                alert(msg);
+                return;
+            }
+
+            document.getElementById('t_content').value = '';
+            getTasks();
+        }
+
+        async function promptAddSubTask(parentTaskId) {
+            let content = prompt("하위 과제 내용을 입력하세요:");
+            
+            if (!content || content.trim() === "") return;
+            content = content.trim();
+
+            const params = new URLSearchParams();
+            params.append('content', content);
+            params.append('parentTaskId', parentTaskId);
+
+            const response = await fetch('/api/tasks/addSub', { method: 'POST', body: params });
+            const msg = await response.text();
+
+            if (msg.includes("최대 10개") || msg.includes("동일한 이름") || msg.includes("리더만") || msg.includes("실패") || msg.includes("오류")) {
+                alert(msg);
+                return;
+            }
+            getTasks();
+        }
+
+        async function toggleTask(taskId) {
+            const params = new URLSearchParams();
+            params.append('taskId', taskId);
+            await fetch('/api/tasks/toggle', { method: 'POST', body: params });
+            getTasks();
+        }
+
+        async function editTask(taskId, oldContent, isCompleted, originalTaskId) {
+            if (isCompleted) {
+                alert("완료된 과제는 수정할 수 없습니다.");
+                return;
+            }
+
+            if (originalTaskId !== null && originalTaskId !== undefined) {
+                alert("해당 과제를 수정할 권한이 없습니다.");
+                return;
+            }
+
+            const newContent = prompt("과제 내용을 수정하세요:", oldContent);
+            if (!newContent || newContent.trim() === "" || newContent === oldContent) return;
+
+            if (newContent.length > 50) {
+                alert("과제 내용은 최대 50자까지 입력 가능합니다.");
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('taskId', taskId);
+            params.append('newContent', newContent);
+
+            const response = await fetch('/api/tasks/update', { method: 'POST', body: params });
+            const msg = await response.text();
+
+            if (msg.includes("권한이 없습니다") || msg.includes("수정할 수 없습니다") || msg.includes("최대 50자")) {
+                alert(msg);
+                return;
+            }
+            getTasks();
+        }
+
+        async function deleteTask(taskId) {
+            if (confirm("이 과제를 삭제하시겠습니까? (메인 과제 시 하위 과제 동시 삭제)")) {
+                const params = new URLSearchParams();
+                params.append('taskId', taskId);
+
+                const response = await fetch('/api/tasks/delete', { method: 'POST', body: params });
+                const msg = await response.text();
+
+                if (msg.includes("리더만") || msg.includes("실패") || msg.includes("오류") || msg.includes("권한")) {
+                    alert(msg);
+                    return; 
+                }
+                getTasks();
+            }
+        }
+
+        async function getTasks() {
+            const response = await fetch('/api/tasks/list');
+            const tasks = await response.json();
+            const resultBox = document.getElementById('task_result');
+            resultBox.innerHTML = '';
+
+            const subTasksOnly = tasks.filter(t => t.parentTask !== null);
+            const totalTasks = subTasksOnly.length;
+            const completedTasks = subTasksOnly.filter(t => t.isCompleted).length;
+            const rate = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+            document.getElementById('completion_rate_text').innerText = `${rate}%`;
+            document.getElementById('completion_progress').style.width = `${rate}%`;
+
+            const mainTasks = tasks.filter(t => !t.parentTask);
+            const subTasks = tasks.filter(t => t.parentTask);
+
+            mainTasks.forEach(main => {
+                const textClass = main.isCompleted ? "completed-text" : "";
+                const div = document.createElement('div');
+                div.className = "main-task";
+                div.innerHTML = `
+                    <span class="${textClass}" style="color: #101E3B; font-weight: bold;"> ${main.content}</span>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="editTask(${main.taskId}, '${main.content}', ${main.isCompleted}, ${main.originalTaskId})" style="background:#6E8CFF; color:white; padding:5px 8px; font-size:12px;">✏️</button>
+                        <button onclick="deleteTask(${main.taskId})" style="background:#050C1E; color:white; padding:5px 8px; font-size:12px;">🗑️</button>
+                        <button onclick="promptAddSubTask(${main.taskId})" style="background:#2A3F7A; color:white; padding:5px 8px; font-size:12px;">➕</button>
+                    </div>
+                `;
+                resultBox.appendChild(div);
+
+                subTasks.filter(s => s.parentTask.taskId === main.taskId).forEach(sub => {
+                    const subClass = sub.isCompleted ? "completed-text" : "";
+                    const subDiv = document.createElement('div');
+                    subDiv.className = "sub-task";
+                    subDiv.innerHTML = `
+                        <div style="display:flex; align-items:center; flex-grow:1;">
+                            <input type="checkbox" ${sub.isCompleted ? 'checked' : ''} onchange="toggleTask(${sub.taskId})">
+                            <span class="${subClass}" style="margin-left:10px; color: #101E3B;">${sub.content}</span>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="editTask(${sub.taskId}, '${sub.content}', ${sub.isCompleted}, ${sub.originalTaskId})" style="background:#6E8CFF; color:white; padding:3px 6px; font-size:10px;">✏️</button>
+                            <button onclick="deleteTask(${sub.taskId})" style="background:#050C1E; color:white; padding:3px 6px; font-size:10px;">🗑️</button>
+                        </div>
+                    `;
+                    resultBox.appendChild(subDiv);
+                });
+            });
+            loadRanking();
+        }
+
+        // =======================================================
+        // 타이머 로직
+        // =======================================================
+        let timerInterval;
+        let isTimerRunning = false; 
+        let isPaused = false;       
+        let timeRemaining = 25 * 60; 
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+            const s = (timeRemaining % 60).toString().padStart(2, '0');
+            document.getElementById('timer_display').innerText = `${m}:${s}`;
+        }
+
+        function startTimer() {
+            if (isTimerRunning && !isPaused) return;
+
+            isTimerRunning = true;
+            isPaused = false;
+            
+            document.getElementById('btn_start').style.display = 'none';
+            document.getElementById('btn_pause').style.display = 'block';
+            document.getElementById('btn_reset').style.display = 'block';
+            document.getElementById('btn_pause').innerText = '일시정지';
+            document.getElementById('btn_pause').style.background = '#6E8CFF'; // 테마색 일시정지
+
+            clearInterval(timerInterval);
+            
+            timerInterval = setInterval(async () => {
+                if (!isPaused) {
+                    timeRemaining--;
+                    updateTimerDisplay();
+                    
+                    if (timeRemaining <= 0) {
+                        clearInterval(timerInterval);
+                        isTimerRunning = false;
+                        resetTimerUI(); 
+                        
+                        const params = new URLSearchParams();
+                        params.append('focusTime', 25);
+                        const response = await fetch('/api/stats/focus', { method: 'POST', body: params });
+                        alert(await response.text());
+                        
+                        loadDashboard(); 
+                        loadRanking(); 
+                    }
+                }
+            }, 1000); 
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('btn_pause');
+            
+            if (isPaused) {
+                pauseBtn.innerText = '재개';
+                pauseBtn.style.background = '#2A3F7A'; 
+            } else {
+                pauseBtn.innerText = '일시정지';
+                pauseBtn.style.background = '#6E8CFF'; 
+            }
+        }
+
+        function resetTimer() {
+            if (confirm("타이머를 초기화하시겠습니까? (진행된 시간은 기록되지 않습니다)")) {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+                isPaused = false;
+                timeRemaining = 25 * 60; 
+                updateTimerDisplay();
+                resetTimerUI();
+            }
+        }
+
+        function resetTimerUI() {
+            document.getElementById('btn_start').style.display = 'block';
+            document.getElementById('btn_pause').style.display = 'none';
+            document.getElementById('btn_reset').style.display = 'none';
+        }
+
+        let weeklyChartInstance = null;
+
+        async function loadDashboard() {
+            const response = await fetch('/api/stats/weekly');
+            if (!response.ok) return;
+            const stats = await response.json();
+
+            const labels = [];
+            const data = [];
+            const today = new Date();
+
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(today.getDate() - i);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
+
+                labels.push(`${month}/${day}`);
+                const stat = stats.find(s => s.statDate === dateStr);
+                data.push(stat ? stat.focusTime : 0);
+            }
+
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            if (weeklyChartInstance) weeklyChartInstance.destroy();
+
+            weeklyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: '집중 시간 (분)', data: data, backgroundColor: '#6E8CFF', borderRadius: 5 }] }, // 그래프 색상 변경
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        window.addEventListener('beforeunload', function (event) {
+            const taskInputElement = document.getElementById('t_content');
+            const isEditingTask = taskInputElement ? taskInputElement.value.trim().length > 0 : false;
+
+            if (isTimerRunning || isEditingTask) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        });
+
+        // =======================================================
+        // 친구 & 랭킹 로직
+        // =======================================================
+        async function addFriend() {
+            const friendId = document.getElementById('friend_id_input').value.trim();
+            if(!friendId) return;
+
+            const params = new URLSearchParams();
+            params.append('friendId', friendId);
+
+            const res = await fetch('/api/friends/add', { method: 'POST', body: params });
+            const msg = await res.text();
+
+            if (msg.includes("가득 찼습니다") || msg.includes("존재하지 않는") || msg.includes("자기 자신은") || msg.includes("이미 등록된")) {
+                alert(msg); 
+                return; 
+            }
+
+            alert(msg);
+            document.getElementById('friend_id_input').value = ''; 
+            loadFriends(); 
+            loadRanking(); 
+        }
+
+        async function loadFriends() {
+            const res = await fetch('/api/friends/list');
+            const friends = await res.json();
+            const listDiv = document.getElementById('friend_list');
+
+            if (friends.length === 0) {
+                listDiv.innerHTML = "아직 친구가 없습니다.";
+            } else {
+                listDiv.innerHTML = ''; 
+                friends.forEach(f => {
+                    const match = f.match(/\(([^)]+)\)/);
+                    const fId = match ? match[1] : '';
+
+                    const div = document.createElement('div');
+                    div.style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #EAF0FF; padding-bottom: 8px;";
+                    div.innerHTML = `
+                        <span style="font-weight: bold; color: #101E3B;">${f}</span>
+                        <button onclick="deleteFriend('${fId}')" style="background:#050C1E; color:white; padding:5px 10px; font-size:12px; border:none; border-radius:4px; cursor:pointer;">삭제</button>
+                    `;
+                    listDiv.appendChild(div);
+                });
+            }
+
+            const selectBox = document.getElementById('t_friend');
+            selectBox.innerHTML = '<option value="none">혼자 하기 (공유 안 함)</option>';
+            friends.forEach(f => {
+                const match = f.match(/\(([^)]+)\)/);
+                if(match) selectBox.innerHTML += `<option value="${match[1]}">${f}와 함께하기</option>`;
+            });
+        }
+
+        async function deleteFriend(friendId) {
+            const checkRes = await fetch(`/api/friends/check-shared?friendId=${friendId}`);
+            const hasSharedTasks = await checkRes.text() === 'true';
+
+            let confirmMsg = "정말 이 친구를 삭제하시겠습니까? (서로의 목록에서 모두 삭제됩니다)";
+            if (hasSharedTasks) {
+                confirmMsg = "이 친구와 함께 진행 중인 공동 과제가 있습니다. 친구 삭제 시 해당 과제는 양쪽 목록에서 모두 삭제됩니다. 계속하시겠습니까?";
+            }
+
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('friendId', friendId);
+
+            try {
+                const res = await fetch('/api/friends/delete', { method: 'POST', body: params });
+                const msg = await res.text();
+
+                if (msg.includes("실패") || msg.includes("오류")) {
+                    alert(msg);
+                    loadFriends(); 
+                    return;
+                }
+
+                alert(msg);
+                loadFriends();
+                loadRanking();
+                getTasks();
+
+            } catch (error) {
+                alert("오류로 인해 친구 삭제에 실패함.");
+                loadFriends(); 
+            }
+        }
+
+        async function loadRanking() {
+            const res = await fetch('/api/stats/ranking');
+            const ranking = await res.json();
+            const rankingDiv = document.getElementById('ranking_list');
+            rankingDiv.innerHTML = '';
+            if (ranking.length === 0) return rankingDiv.innerHTML = "데이터가 없습니다.";
+
+            const medals = ["🥇", "🥈", "🥉"];
+            ranking.forEach((user, index) => {
+                const medal = index < 3 ? `<span class="rank-medal">${medals[index]}</span>` : `<span style="margin-right:15px; margin-left:8px; font-weight:bold;">${index+1}</span>`;
+                const div = document.createElement('div');
+                div.className = "rank-item";
+                div.innerHTML = `
+                    <div>${medal} <strong style="color: #101E3B;">${user.nickname}</strong> <span style="font-size:12px; color:#A0ABC0;">(${user.userId})</span></div>
+                    <div style="font-weight: bold; color: #2A3F7A;">${user.completionRate}%</div>
+                `;
+                rankingDiv.appendChild(div);
+            });
+        }
+
+        // =======================================================
+        // 알림 로직
+        // =======================================================
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) return alert("데스크톱 알림을 지원하지 않습니다.");
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") alert("알림이 허용되었습니다!");
+                else alert("알림이 차단되었습니다.");
+            });
+        }
+
+        async function sendTaskReminder() {
+            if (Notification.permission !== "granted") return;
+            try {
+                const response = await fetch('/api/tasks/list');
+                const tasks = await response.json();
+
+                const incompleteSubTasks = tasks.filter(t => t.parentTask !== null && !t.isCompleted);
+                const count = incompleteSubTasks.length;
+
+                const title = "🏃‍♂️ 원 스텝 천 리";
+                const bodyMsg = count > 0
+                    ? `아직 완료하지 않은 하위 목표가 ${count}개 남아있습니다! 🔥`
+                    : "모든 하위 목표를 달성했습니다! 훌륭한 하루네요. 🎉";
+
+                const notification = new Notification(title, {
+                    body: bodyMsg,
+                    icon: "https://cdn-icons-png.flaticon.com/512/7143/7143279.png"
+                });
+                notification.onclick = () => window.focus();
+            } catch (error) {
+                console.error("알림 에러:", error);
+            }
+        }
+
+        function startHourlyReminder() {
+            const ONE_HOUR = 60 * 60 * 1000;
+            setInterval(() => {
+                console.log("정기 리마인더 실행 중...");
+                sendTaskReminder();
+            }, ONE_HOUR);
+        }
+
+        function scheduleMidnightReport() {
+            const now = new Date();
+            const night = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+            const msToMidnight = night.getTime() - now.getTime();
+
+            setTimeout(() => {
+                sendDailyReport();
+                scheduleMidnightReport();
+            }, msToMidnight);
+            console.log(`데일리 리포트 예약 완료: ${Math.round(msToMidnight / 1000 / 60)}분 후 실행`);
+        }
+
+        async function sendDailyReport() {
+            const taskRes = await fetch('/api/tasks/list');
+            const tasks = await taskRes.json();
+
+            const subTasksOnly = tasks.filter(t => t.parentTask !== null);
+            const totalTasks = subTasksOnly.length;
+            const completedTasks = subTasksOnly.filter(t => t.isCompleted).length;
+
+            const rate = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+            const statRes = await fetch('/api/stats/weekly');
+            const stats = await statRes.json();
+
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+
+            const todayStat = stats.find(s => s.statDate === dateStr);
+            const focusTime = todayStat ? todayStat.focusTime : 0;
+
+            let bodyMsg = "";
+
+            if (totalTasks === 0 && focusTime === 0) {
+                document.getElementById('streak_days_text').innerText = "0";
+                bodyMsg = "오늘은 쉬어가는 날이었나요? 내일은 다시 작은 목표부터 시작해봐요! 🌱";
+            } else {
+                bodyMsg = `오늘 하위 목표 ${totalTasks}개 중 ${completedTasks}개 달성 (달성률 ${rate}%), 총 ${focusTime}분 집중했습니다! 오늘도 고생 많으셨습니다. 🌙`;
+            }
+
+            if (Notification.permission === "granted") {
+                new Notification("📊 오늘의 데일리 리포트", {
+                    body: bodyMsg,
+                    icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
+                });
+            } else {
+                console.log("알림 권한이 없어 데일리 리포트를 출력할 수 없습니다.");
+            }
+        }
+
+        // =======================================================
+        // UI / 탭 전환
+        // =======================================================
+        function showTab(tabName) {
+            const tabDashboard = document.getElementById('tab_dashboard');
+            const tabFriends = document.getElementById('tab_friends');
+            const btnDashboard = document.getElementById('btn_dashboard');
+            const btnFriends = document.getElementById('btn_friends');
+
+            if (tabName === 'dashboard') {
+                tabDashboard.style.display = 'flex';
+                tabFriends.style.display = 'none';
+
+                btnDashboard.style.background = '#2A3F7A';
+                btnDashboard.style.color = 'white';
+                btnFriends.style.background = '#D9E2F2';
+                btnFriends.style.color = '#101E3B';
+
+            } else if (tabName === 'friends') {
+                tabDashboard.style.display = 'none';
+                tabFriends.style.display = 'flex';
+
+                btnDashboard.style.background = '#D9E2F2';
+                btnDashboard.style.color = '#101E3B';
+                btnFriends.style.background = '#2A3F7A'; 
+                btnFriends.style.color = 'white';
+            }
+        }
+    </script>
+</body>
+</html>
